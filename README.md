@@ -47,3 +47,13 @@ Counters and activity are stored in IndexedDB on this device. Clearing site data
 
 \n## Troubleshooting counter creation\nIf a save fails, the create/edit dialog now stays open and displays the IndexedDB error. Open browser DevTools → Console for the detailed diagnostic. Ensure the site is running on localhost or HTTPS and that browser site storage is not blocked/private-restricted.\n
 \n## Database schema migration\nVersion 2 adds the missing `createdAt` index on the counters table. Dexie upgrades an existing version-1 database automatically when the app is opened. Do not clear site data just to apply this migration; allow the app to reload and upgrade its database.\n
+
+### Android APK
+With Node.js 20+, JDK 17+, and Android SDK installed, run:
+
+```bash
+npm ci
+npm run android:apk
+```
+
+The installable debug APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions also attaches an APK artifact to each successful Android build.

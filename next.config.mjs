@@ -4,7 +4,7 @@ const nextConfig = {
   output: "export",
   images: { unoptimized: true },
   trailingSlash: true,
-  eslint: { ignoreDuringBuilds: process.env.GITHUB_PAGES === "true" },
+  eslint: { ignoreDuringBuilds: process.env.GITHUB_PAGES === "true" || process.env.ANDROID_BUILD === "true" },
   ...(basePath ? { basePath, assetPrefix: basePath } : {})
 };
 export default nextConfig;
