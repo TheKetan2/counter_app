@@ -131,10 +131,10 @@ body{padding-bottom:0!important}
   min-height:64px;
 }
 .page-content:not(.secondary-page){
-  flex:0 0 calc(100dvh - 64px - 68px - env(safe-area-inset-bottom));
-  height:calc(100dvh - 64px - 68px - env(safe-area-inset-bottom));
+  flex:1 1 0;
+  height:auto;
   min-height:0;
-  max-height:calc(100dvh - 64px - 68px - env(safe-area-inset-bottom));
+  max-height:none;
   overflow:hidden;
   padding-top:8px;
   padding-bottom:7px;
@@ -150,6 +150,8 @@ body{padding-bottom:0!important}
   min-height:calc(68px + env(safe-area-inset-bottom));
   padding-bottom:calc(6px + env(safe-area-inset-bottom));
 }
+html:has(.app-shell) body{height:100%;overflow:hidden;padding-bottom:0}
+.app-shell > .page-content:not(.secondary-page){overscroll-behavior: none;touch-action:pan-y}
 .page-content:not(.secondary-page) .counter-focus{
   flex:1 1 0;
   min-height:0;
