@@ -395,7 +395,7 @@ export default function TallyFlow() {
     <main className="app-shell">
       <header className="topbar">
         <div className="brand" onClick={() => setView("home")} role="button" tabIndex={0}>
-          <div className="brand-mark"><Layers size={19}/></div>
+          <div className="brand-mark"><img src="/icons/icon-192.png" alt="" /></div>
           <div><strong>TallyFlow</strong><span>Every count matters</span></div>
         </div>
         <div className="top-actions">
