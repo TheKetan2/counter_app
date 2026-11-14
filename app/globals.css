@@ -117,7 +117,9 @@ body{padding-bottom:0!important}
 /* Layout correction: the fixed bottom navigation must be reserved in the
    document flow. Earlier flex sizing let the home workspace extend behind it. */
 .app-shell{
-  height:100dvh;
+  height:calc(100dvh - env(safe-area-inset-top));
+  padding-top:env(safe-area-inset-top);
+  box-sizing:content-box;
   min-height:0;
   overflow:hidden;
   display:flex;
