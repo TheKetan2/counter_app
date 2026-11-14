@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 export const metadata: Metadata = {
   title: "TallyFlow — Every count matters",
   description: "A fast, customizable, offline-first counter for workouts, japa, habits and everyday tallying.",
   applicationName: "TallyFlow",
-  manifest: "/manifest.webmanifest",
+  manifest: `${basePath}/manifest.webmanifest`,
   appleWebApp: { capable: true, statusBarStyle: "default", title: "TallyFlow" },
   formatDetection: { telephone: false }
 };

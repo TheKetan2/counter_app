@@ -27,7 +27,10 @@ Open http://localhost:3000.
 npm run build
 ```
 
-Next.js exports the static site to `out/`. Deploy the contents of `out/` to any static host over HTTPS (Vercel, Netlify, Cloudflare Pages, GitHub Pages with suitable base-path configuration, etc.).
+Next.js exports the static site to `out/`. Deploy the contents of `out/` to any static host over HTTPS (Vercel, Netlify, Cloudflare Pages, GitHub Pages, etc.).
+
+### GitHub Pages
+The GitHub Actions workflow builds the project with the `/counter_app` base path and deploys it to [https://theketan2.github.io/counter_app/](https://theketan2.github.io/counter_app/) whenever a commit is pushed to `main`. In the repository's **Settings → Pages**, set the build and deployment source to **GitHub Actions**.
 
 ## Install
 - Android/desktop Chromium: use the browser's Install app prompt or menu.
