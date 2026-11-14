@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Capacitor } from "@capacitor/core";
+import { Directory, Encoding, Filesystem } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 import {
   Activity, ArrowDown, ArrowLeft, ArrowUp, Award, Bell, Check, ChevronRight,
   CircleHelp, Clock3, Dumbbell, Flower2, Hash, House, Minus, Moon, MoreHorizontal,
@@ -312,9 +315,22 @@ export default function TallyFlow() {
   };
   const exportData = async () => {
     const payload = { exportedAt: new Date().toISOString(), counters: await db.counters.toArray(), events: await db.events.toArray(), achievements: await db.achievements.toArray() };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `tallyflow-backup-${todayKey()}.json`; a.click(); URL.revokeObjectURL(url);
-    notify("Backup downloaded.");
+    const filename = `tallyflow-backup-${todayKey()}.json`;
+    const content = JSON.stringify(payload, null, 2);
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const file = await Filesystem.writeFile({ path: filename, data: content, directory: Directory.Cache, encoding: Encoding.UTF8 });
+        await Share.share({ title: "TallyFlow backup", text: "Save this backup somewhere safe so you can restore your counters later.", files: [file.uri], dialogTitle: "Save TallyFlow backup" });
+      } catch (error) {
+        console.error("TallyFlow: native backup export failed", error);
+        notify("Could not open the Android save sheet. Please try again.");
+        return;
+      }
+    } else {
+      const blob = new Blob([content], { type: "application/json" });
+      const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    notify("Choose an app or folder to save your backup.");
   };
   const importData = async (file?: File) => {
     if (!file) return;

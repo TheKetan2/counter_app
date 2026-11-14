@@ -56,4 +56,4 @@ npm ci
 npm run android:apk
 ```
 
-The installable debug APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions also attaches an APK artifact to each successful Android build.
+The installable debug APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk`. GitHub Actions also attaches an APK artifact to each successful Android build. In the Android app, **Settings → Export backup** opens the system share sheet so you can save the JSON to Downloads or another folder.
