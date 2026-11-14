@@ -50,6 +50,7 @@ export default function TallyFlow() {
   const [editing, setEditing] = useState<Counter | null>(null);
   const [toast, setToast] = useState("");
   const [celebration, setCelebration] = useState("");
+  const [workoutComplete, setWorkoutComplete] = useState(false);
   const [running, setRunning] = useState<Record<string, boolean>>({});
   const [elapsed, setElapsed] = useState<Record<string, number>>({});
   const [theme, setTheme] = useState<"system" | "light" | "dark">("system");
@@ -60,7 +61,7 @@ export default function TallyFlow() {
   const [form, setForm] = useState({ name: "", category: "custom" as CounterCategory, target: "", step: "1", mode: "simple" as "simple" | "session", milestoneEvery: "10", color: "#9b8cff", sound: false, vibration: true, daysOfWeek: [] as number[] });
   const timerRef = useRef<any>(null);
   const toastRef = useRef<any>(null);
-  const visibleCounters = counters.filter(c => c.category !== "gym" || !c.daysOfWeek?.length || c.daysOfWeek.includes(activeDay));
+  const visibleCounters = counters.filter(c => c.category !== "gym" || !c.daysOfWeek?.length || c.daysOfWeek.includes(activeDay)).sort((a, b) => (a.workoutOrderByDay?.[activeDay] ?? a.createdAt) - (b.workoutOrderByDay?.[activeDay] ?? b.createdAt));
   const selected = visibleCounters.find(c => c.id === selectedId) ?? null;
 
   const refresh = useCallback(async () => {
@@ -177,11 +178,37 @@ export default function TallyFlow() {
     if (delta > 0 && counter.vibration && "vibrate" in navigator) navigator.vibrate(12);
     if (delta > 0 && counter.milestoneEvery > 0 && next > 0 && next % counter.milestoneEvery === 0) celebrate(`${fmt(next)} ${counter.name} counts!`);
     if (delta > 0 && counter.target && next >= counter.target && counter.count < counter.target) {
-      celebrate("Target achieved. Well done!");
+      const todaysWorkout = visibleCounters.filter(item => item.category === "gym" && item.target);
+      const nextUnfinished = todaysWorkout.find(item => item.id !== counter.id && item.count < item.target!);
+      const allWorkoutGoalsDone = todaysWorkout.length > 0 && todaysWorkout.every(item => item.id === counter.id ? next >= item.target! : item.count >= item.target!);
+      if (allWorkoutGoalsDone) {
+        setSelectedId(counter.id);
+        setWorkoutComplete(true);
+        setTimeout(() => setWorkoutComplete(false), 5200);
+      } else if (nextUnfinished) {
+        setSelectedId(nextUnfinished.id);
+        celebrate(`${counter.name} goal reached! Next: ${nextUnfinished.name}`);
+      } else {
+        celebrate("Target achieved. Well done!");
+      }
       await unlock(`target-${counter.id}`, `${counter.name} finisher`, `Reached ${fmt(counter.target)} counts`, "trophy");
     }
     if (next >= 100) await unlock("century", "Century club", "Reached 100 counts in a counter", "award");
     if (next >= 1000) await unlock("thousand", "One thousand", "Reached 1,000 counts in a counter", "zap");
+  };
+  const moveWorkout = async (counter: Counter, direction: -1 | 1) => {
+    const index = visibleCounters.findIndex(item => item.id === counter.id);
+    const other = visibleCounters[index + direction];
+    if (index < 0 || !other) return;
+    const reordered = [...visibleCounters];
+    [reordered[index], reordered[index + direction]] = [reordered[index + direction], reordered[index]];
+    await db.transaction("rw", db.counters, async () => {
+      await Promise.all(reordered.map((item, position) => db.counters.update(item.id, { workoutOrderByDay: { ...item.workoutOrderByDay, [activeDay]: position }, updatedAt: Date.now() })));
+    });
+    setCounters(current => current.map(item => {
+      const position = reordered.findIndex(entry => entry.id === item.id);
+      return position < 0 ? item : { ...item, workoutOrderByDay: { ...item.workoutOrderByDay, [activeDay]: position } };
+    }));
   };
   const playTone = () => {
     try {
@@ -417,13 +444,19 @@ export default function TallyFlow() {
         <div className="workout-week" aria-label="Choose workout day">{weekdays.map(day=><button type="button" key={day.name} aria-label={day.name} title={day.name} className={activeDay===day.value?"active":""} aria-pressed={activeDay===day.value} onClick={()=>setActiveDay(day.value)}>{day.short}</button>)}</div>
         <section className="section-heading"><div><h2>{weekdays.find(day=>day.value===activeDay)?.name}'s counters</h2><p>{visibleCounters.length} active on {weekdays.find(day=>day.value===activeDay)?.name}</p></div><button className="primary small" onClick={() => startCreate()}><Plus size={16}/> New counter</button></section>
         <div className="counter-list">
-          {visibleCounters.map(c => {
+          {visibleCounters.map((c, index) => {
             const Icon = iconMap[c.icon] ?? Hash;
-            return <motion.button layout key={c.id} className={`counter-card ${selectedId === c.id ? "selected" : ""}`} onClick={() => setSelectedId(c.id)} style={{ "--accent": c.color } as React.CSSProperties}>
+            return <motion.div layout key={c.id} className={`counter-card ${selectedId === c.id ? "selected" : ""}`} style={{ "--accent": c.color } as React.CSSProperties}>
+              <button className="counter-card-main" onClick={() => setSelectedId(c.id)} aria-label={`Select ${c.name}`}>
               <div className="counter-icon"><Icon size={20}/></div>
               <div className="counter-info"><strong>{c.name}</strong><span>{categoryLabel(c.category)}{c.target ? ` · Goal ${fmt(c.target)}` : " · No target"}</span><div className="mini-track"><i style={{ width: `${c.target ? Math.min(100, c.count / c.target * 100) : 0}%` }}/></div></div>
               <div className="counter-value"><strong>{fmt(c.count)}</strong><ChevronRight size={16}/></div>
-            </motion.button>;
+              </button>
+              <div className="counter-reorder" aria-label={`Reorder ${c.name}`}>
+                <button type="button" aria-label={`Move ${c.name} up`} disabled={index === 0} onClick={() => moveWorkout(c, -1)}><ArrowUp size={14}/></button>
+                <button type="button" aria-label={`Move ${c.name} down`} disabled={index === visibleCounters.length - 1} onClick={() => moveWorkout(c, 1)}><ArrowDown size={14}/></button>
+              </div>
+            </motion.div>;
           })}
           {!visibleCounters.length && <div className="empty-state"><Target size={30}/><h3>No workouts scheduled today</h3><p>Assign exercises to this weekday to see them here.</p><button className="primary" onClick={() => startCreate()}>Add exercise</button></div>}
         </div>
@@ -548,6 +581,7 @@ export default function TallyFlow() {
           <div className="modal-actions">{modal==="edit"&&<button className="danger-button" onClick={()=>setModal("delete")}>Delete counter</button>}<button className="secondary-button" onClick={()=>setModal(null)}>Cancel</button><button className="primary" onClick={saveForm}><Check size={16}/>{modal==="edit"?"Save changes":"Create counter"}</button></div>
         </>}
       </motion.div></motion.div>}</AnimatePresence>
+      <AnimatePresence>{workoutComplete&&<motion.div className="workout-fireworks" role="status" aria-live="polite" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={()=>setWorkoutComplete(false)}><div className="firework-burst burst-one">✦<i>✦</i><b>✦</b></div><div className="firework-burst burst-two">✦<i>✦</i><b>✦</b></div><div className="firework-burst burst-three">✦<i>✦</i><b>✦</b></div><div className="workout-finish-card"><span>TODAY&apos;S WORKOUT</span><strong>Workout finished!</strong><p>Every exercise done. Amazing work.</p><span className="finish-dismiss">Tap anywhere to close</span></div></motion.div>}</AnimatePresence>
       <AnimatePresence>{celebration&&<motion.div className="celebration" initial={{opacity:0,scale:.8,y:10}} animate={{opacity:1,scale:1,y:0}} exit={{opacity:0,y:-10}}><div className="celebration-icon">🎉</div><strong>{celebration}</strong><span>Keep the momentum going.</span></motion.div>}</AnimatePresence>
       <AnimatePresence>{toast&&<motion.div className="toast" initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} exit={{opacity:0,y:8}}>{toast}</motion.div>}</AnimatePresence>
     </main>

@@ -19,6 +19,7 @@ export type Counter = {
   sessions: number;
   daysOfWeek?: number[];
   lastSessionAt?: number;
+  workoutOrderByDay?: Record<number, number>;
 };
 export type CountEvent = {
   id?: number;
